@@ -57,8 +57,8 @@ class LoadImages:  # for inference
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         self.img = np.ascontiguousarray(img)
 
-
-def detect(img, img0, video_name, username, token):
+# def detect(img, img0, video_name, username, token):
+def detect(img, img0, video_name):
     yawning = False
     smoking = False
     calling = False
@@ -213,20 +213,20 @@ def detect(img, img0, video_name, username, token):
             with open(root + tmp_id + ".jpg", "wb") as file:
                 file.write(base64.b64decode(tmp_data))
             file.close()
-            r = requests.post(
-                "http://localhost:9527/image/insert",
-                json.dumps({
-                    "videoName": video_name,
-                    "username": username,
-                    "yawningFlag": yawning,
-                    "eyeClosedFlag": eye_closed,
-                    "smokingFlag": smoking,
-                    "callingFlag": calling,
-                    "imgUrl": root + tmp_id + ".jpg"
-                }),
-                headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}
-            ).json()
-            print(r)
+            # r = requests.post(
+            #     "http://localhost:9527/image/insert",
+            #     json.dumps({
+            #         "videoName": video_name,
+            #         # "username": username,
+            #         "yawningFlag": yawning,
+            #         "eyeClosedFlag": eye_closed,
+            #         "smokingFlag": smoking,
+            #         "callingFlag": calling,
+            #         "imgUrl": root + tmp_id + ".jpg"
+            #     }),
+            #     headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}
+            # ).json()
+            # print(r)
 
         return "data:image/jpeg;base64," + str(tmp_data)[2:-1], yawning, calling, smoking, eye_closed
 
@@ -240,34 +240,36 @@ img_size = 640
 stride = 32
 
 
-@sockets.route('/video/<string:token>/<string:username>')
-def socket(ws, token, username):
+# @sockets.route('/video/<string:token>/<string:username>')
+@sockets.route('/video')
+# def socket(ws, token, username):
+def socket(ws):
     while not ws.closed:
         msg = ws.receive()
         if msg != "ping" and msg is not None:
 
-            r = requests.post(
-                "http://localhost:9527/user/validate",
-                data=json.dumps({"token": token, "username": username}),
-                headers={"Content-Type": "application/json"}
-            ).json()
+            # r = requests.post(
+            #     "http://localhost:9527/user/validate",
+            #     data=json.dumps({"token": token, "username": username}),
+            #     headers={"Content-Type": "application/json"}
+            # ).json()
 
-            print(r["code"])
+            # print(r["code"])
 
-            if r["code"] != 200:
-                ws.send("unauthorized!")
-                continue
+            # if r["code"] != 200:
+            #     ws.send("unauthorized!")
+            #     continue
 
             video_name = str(uuid.uuid4())
 
-            requests.post(
-                "http://localhost:9527/video/insert",
-                json.dumps({
-                    "videoName": video_name,
-                    "username": username,
-                }),
-                headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}
-            )
+            # requests.post(
+            #     "http://localhost:9527/video/insert",
+            #     json.dumps({
+            #         "videoName": video_name,
+            #         "username": username,
+            #     }),
+            #     headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}
+            # )
 
             yawning_times = 0
             calling_times = 0
@@ -295,10 +297,12 @@ def socket(ws, token, username):
                         for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
                             strip_optimizer(opt.weights)
                             base64Data, yawning_flag, calling_flag, smoking_flag, eye_closed_flag = \
-                                detect(img, img0, video_name, username, token)
+                                detect(img, img0, video_name)
+                            # detect(img, img0, video_name, username, token)
                     else:
                         base64Data, yawning_flag, calling_flag, smoking_flag, eye_closed_flag = \
-                            detect(img, img0, video_name, username, token)
+                            detect(img, img0, video_name)
+                        # detect(img, img0, video_name, username, token)
 
                 if yawning_flag:
                     yawning_times += 1
@@ -320,25 +324,25 @@ def socket(ws, token, username):
                     }
                 ))
 
-            requests.post(
-                "http://localhost:9527/video/update",
-                json.dumps({
-                    "type": "video information",
-                    "videoName": video_name,
-                    "username": username,
-                    "yawning": yawning_times,
-                    "eyeClosed": eye_closed_times,
-                    "smoking": smoking_times,
-                    "calling": calling_times,
-                }),
-                headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}
-            )
+            # requests.post(
+            #     "http://localhost:9527/video/update",
+            #     json.dumps({
+            #         "type": "video information",
+            #         "videoName": video_name,
+            #         "username": username,
+            #         "yawning": yawning_times,
+            #         "eyeClosed": eye_closed_times,
+            #         "smoking": smoking_times,
+            #         "calling": calling_times,
+            #     }),
+            #     headers={"Content-Type": "application/json", "Authorization": "Bearer " + token}
+            # )
 
             ws.send(
                 json.dumps({
                     "type": "video information",
                     "videoName": video_name,
-                    "username": username,
+                    # "username": username,
                     "yawning": yawning_times,
                     "eyeClosed": eye_closed_times,
                     "smoking": smoking_times,
